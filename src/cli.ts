@@ -16,8 +16,44 @@ const PATTERNS: TemplatePattern[] = [
 	"escrow",
 	"auction",
 	"subscription",
+	"oracle",
+	"token",
 	"custom",
 ];
+
+const FILE_ICONS: Record<string, string> = {
+	".daml": chalk.magenta("daml"),
+	".ts": chalk.cyan("ts"),
+	".yaml": chalk.yellow("yaml"),
+};
+
+function getFileIcon(path: string): string {
+	for (const [ext, icon] of Object.entries(FILE_ICONS)) {
+		if (path.endsWith(ext)) return icon;
+	}
+	return chalk.gray("file");
+}
+
+function printFileTree(
+	files: { path: string; created: boolean; skipped: boolean }[],
+	dryRun: boolean,
+): void {
+	const prefix = dryRun ? chalk.blue("  DRY-RUN") : "";
+	for (let i = 0; i < files.length; i++) {
+		const file = files[i];
+		const isLast = i === files.length - 1;
+		const connector = isLast ? chalk.gray("  └──") : chalk.gray("  ├──");
+		const icon = getFileIcon(file.path);
+
+		if (file.skipped) {
+			console.log(`${connector} ${chalk.yellow("SKIP")} [${icon}] ${chalk.gray(file.path)}`);
+		} else if (dryRun) {
+			console.log(`${connector} ${chalk.blue("WOULD CREATE")} [${icon}] ${chalk.white(file.path)}`);
+		} else {
+			console.log(`${connector} ${chalk.green("CREATE")} [${icon}] ${chalk.white(file.path)}`);
+		}
+	}
+}
 
 const program = new Command();
 
@@ -60,6 +96,7 @@ program
 	.option("--tests", "Generate Daml test scripts", true)
 	.option("--no-tests", "Skip test generation")
 	.option("--overwrite", "Overwrite existing files", false)
+	.option("--dry-run", "Preview generated files without writing to disk", false)
 	.action((opts) => {
 		const pattern = opts.pattern as TemplatePattern;
 		if (!PATTERNS.includes(pattern)) {
@@ -72,6 +109,7 @@ program
 		const templateName = opts.name;
 		const moduleName = opts.module ?? templateName;
 		const outputDir = resolve(opts.output);
+		const dryRun = opts.dryRun ?? false;
 
 		console.log(chalk.blue.bold("\n  Canton Daml Generator\n"));
 		console.log(chalk.gray(`  Pattern:    ${chalk.white(pattern)}`));
@@ -86,6 +124,9 @@ program
 		console.log(
 			chalk.gray(`  Tests:      ${chalk.white(opts.tests ? "yes" : "no")}`),
 		);
+		if (dryRun) {
+			console.log(chalk.blue(`  Mode:       ${chalk.blue.bold("DRY RUN (no files will be written)")}`));
+		}
 		console.log("");
 
 		const result = generateProject({
@@ -97,30 +138,40 @@ program
 			typescript: opts.typescript,
 			tests: opts.tests,
 			overwrite: opts.overwrite,
+			dryRun,
 		});
 
-		for (const file of result.files) {
-			if (file.skipped) {
-				console.log(chalk.yellow(`  SKIP  ${file.path}`));
-			} else {
-				console.log(chalk.green(`  CREATE  ${file.path}`));
-			}
+		console.log(chalk.gray("  Generated file tree:"));
+		printFileTree(result.files, dryRun);
+
+		const createdCount = result.files.filter((f) => f.created).length;
+		const skippedCount = result.files.filter((f) => f.skipped).length;
+
+		console.log("");
+		if (dryRun) {
+			console.log(
+				chalk.blue.bold(
+					`  Would generate ${result.files.length} files (dry run, nothing written)\n`,
+				),
+			);
+		} else {
+			console.log(
+				chalk.green.bold(
+					`  Generated ${createdCount} files${skippedCount > 0 ? chalk.yellow(` (${skippedCount} skipped)`) : ""}\n`,
+				),
+			);
 		}
 
-		console.log(
-			chalk.green.bold(
-				`\n  Generated ${result.files.filter((f) => f.created).length} files\n`,
-			),
-		);
-
 		// Print next steps
-		console.log(chalk.blue("  Next steps:"));
-		console.log(chalk.gray("  1. Install Daml SDK: curl -sSL https://get.daml.com | sh"));
-		console.log(chalk.gray(`  2. cd ${outputDir}`));
-		console.log(chalk.gray("  3. daml build"));
-		console.log(chalk.gray("  4. daml test --all"));
-		console.log(chalk.gray("  5. daml start  (sandbox + JSON API)"));
-		console.log("");
+		if (!dryRun) {
+			console.log(chalk.blue("  Next steps:"));
+			console.log(chalk.gray("  1. Install Daml SDK: curl -sSL https://get.daml.com | sh"));
+			console.log(chalk.gray(`  2. cd ${outputDir}`));
+			console.log(chalk.gray("  3. daml build"));
+			console.log(chalk.gray("  4. daml test --all"));
+			console.log(chalk.gray("  5. daml start  (sandbox + JSON API)"));
+			console.log("");
+		}
 	});
 
 program

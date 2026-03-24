@@ -16,6 +16,7 @@ function makeOptions(overrides: Partial<GeneratorOptions> = {}): GeneratorOption
 		typescript: true,
 		tests: true,
 		overwrite: true,
+		dryRun: false,
 		...overrides,
 	};
 }
@@ -109,10 +110,20 @@ describe("generateProject", () => {
 		expect(result.template.moduleName).toBe("TestAsset");
 	});
 
+	it("dry-run mode does not write files to disk", () => {
+		const result = generateProject(makeOptions({ dryRun: true }));
+		expect(result.files.length).toBeGreaterThan(0);
+		for (const file of result.files) {
+			expect(file.created).toBe(false);
+			expect(file.skipped).toBe(false);
+			expect(existsSync(file.path)).toBe(false);
+		}
+	});
+
 	it("works with all patterns", () => {
 		const patterns = [
 			"asset", "iou", "proposal", "role", "registry",
-			"escrow", "auction", "subscription", "custom",
+			"escrow", "auction", "subscription", "oracle", "token", "custom",
 		] as const;
 		for (const pattern of patterns) {
 			rmSync(TEST_DIR, { recursive: true });

@@ -63,6 +63,8 @@ export type TemplatePattern =
 	| "escrow"
 	| "auction"
 	| "subscription"
+	| "oracle"
+	| "token"
 	| "custom";
 
 export interface GeneratorOptions {
@@ -74,4 +76,5 @@ export interface GeneratorOptions {
 	typescript: boolean;
 	tests: boolean;
 	overwrite: boolean;
+	dryRun: boolean;
 }

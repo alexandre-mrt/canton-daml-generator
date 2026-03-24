@@ -14,6 +14,8 @@ export function getPatternTemplate(
 		escrow: () => createEscrowTemplate(moduleName, templateName),
 		auction: () => createAuctionTemplate(moduleName, templateName),
 		subscription: () => createSubscriptionTemplate(moduleName, templateName),
+		oracle: () => createOracleTemplate(moduleName, templateName),
+		token: () => createTokenTemplate(moduleName, templateName),
 		custom: () => createCustomTemplate(moduleName, templateName),
 	};
 
@@ -443,6 +445,132 @@ function createSubscriptionTemplate(
 			},
 		],
 		ensure: "fee > 0.0",
+	};
+}
+
+function createOracleTemplate(
+	moduleName: string,
+	templateName: string,
+): DamlTemplate {
+	return {
+		moduleName,
+		templateName,
+		description: "Price oracle contract with trusted price updates and queries",
+		fields: [
+			{ name: "oracle", type: "Party", description: "Trusted oracle operator" },
+			{ name: "baseSymbol", type: "Text", description: "Asset being priced (e.g., CC)" },
+			{ name: "quoteSymbol", type: "Text", description: "Quote currency (e.g., USDC)" },
+			{ name: "price", type: "Decimal", description: "Current price" },
+			{ name: "lastUpdated", type: "Time", description: "Last update timestamp" },
+		],
+		signatories: ["oracle"],
+		observers: [],
+		choices: [
+			{
+				name: "UpdatePrice",
+				consuming: true,
+				controller: "oracle",
+				params: [{ name: "newPrice", type: "Decimal" }],
+				returnType: `ContractId ${templateName}`,
+				description: "Update the oracle price (only oracle party)",
+				body: `do
+        assert (newPrice > 0.0)
+        now <- getTime
+        create this with price = newPrice, lastUpdated = now`,
+			},
+			{
+				name: "QueryPrice",
+				consuming: false,
+				controller: "oracle",
+				params: [],
+				returnType: "Decimal",
+				description: "Query the current price without consuming the contract",
+				body: "return price",
+			},
+		],
+		ensure: "price > 0.0",
+		key: {
+			type: "(Party, Text, Text)",
+			expression: "(oracle, baseSymbol, quoteSymbol)",
+			maintainer: "key._1",
+		},
+	};
+}
+
+function createTokenTemplate(
+	moduleName: string,
+	templateName: string,
+): DamlTemplate {
+	return {
+		moduleName,
+		templateName,
+		description: "CIP-56 compliant token with mint, burn, and transfer capabilities",
+		fields: [
+			{ name: "issuer", type: "Party", description: "Token issuer (minting authority)" },
+			{ name: "owner", type: "Party", description: "Current token holder" },
+			{ name: "symbol", type: "Text", description: "Token symbol (e.g., CC)" },
+			{ name: "amount", type: "Decimal", description: "Token amount" },
+			{ name: "decimals", type: "Int", description: "Decimal precision (e.g., 6)" },
+			{ name: "metadata", type: "Text", description: "Token metadata (JSON)" },
+		],
+		signatories: ["issuer"],
+		observers: ["owner"],
+		choices: [
+			{
+				name: "Transfer",
+				consuming: true,
+				controller: "owner",
+				params: [{ name: "newOwner", type: "Party" }],
+				returnType: `ContractId ${templateName}`,
+				description: "Transfer tokens to a new owner",
+				body: "create this with owner = newOwner",
+			},
+			{
+				name: "Burn",
+				consuming: true,
+				controller: "owner",
+				params: [{ name: "burnAmount", type: "Decimal" }],
+				returnType: `Optional (ContractId ${templateName})`,
+				description: "Burn tokens, reducing the supply. Returns remaining if partial burn.",
+				body: `do
+        assert (burnAmount > 0.0 && burnAmount <= amount)
+        if burnAmount == amount
+          then return None
+          else do
+            remaining <- create this with amount = amount - burnAmount
+            return (Some remaining)`,
+			},
+			{
+				name: "Mint",
+				consuming: true,
+				controller: "issuer",
+				params: [{ name: "mintAmount", type: "Decimal" }],
+				returnType: `ContractId ${templateName}`,
+				description: "Mint additional tokens (issuer only)",
+				body: `do
+        assert (mintAmount > 0.0)
+        create this with amount = amount + mintAmount`,
+			},
+			{
+				name: "Split",
+				consuming: true,
+				controller: "owner",
+				params: [{ name: "splitAmount", type: "Decimal" }],
+				returnType: `(ContractId ${templateName}, ContractId ${templateName})`,
+				description: "Split token holding into two parts",
+				body: `do
+        assert (splitAmount > 0.0 && splitAmount < amount)
+        cid1 <- create this with amount = splitAmount
+        cid2 <- create this with amount = amount - splitAmount
+        return (cid1, cid2)`,
+			},
+		],
+		ensure: "amount > 0.0",
+		key: {
+			type: "(Party, Text, Party)",
+			expression: "(issuer, symbol, owner)",
+			maintainer: "key._1",
+		},
 	};
 }
 

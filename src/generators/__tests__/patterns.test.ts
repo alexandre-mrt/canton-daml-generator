@@ -11,6 +11,8 @@ const ALL_PATTERNS: TemplatePattern[] = [
 	"escrow",
 	"auction",
 	"subscription",
+	"oracle",
+	"token",
 	"custom",
 ];
 
@@ -111,5 +113,62 @@ describe("getPatternTemplate", () => {
 		const template = getPatternTemplate("auction", "M", "Auction");
 		const bidder = template.fields.find((f) => f.name === "highestBidder");
 		expect(bidder?.type).toEqual({ optional: "Party" });
+	});
+
+	it("oracle pattern has UpdatePrice and QueryPrice choices", () => {
+		const template = getPatternTemplate("oracle", "M", "Oracle");
+		const choiceNames = template.choices.map((c) => c.name);
+		expect(choiceNames).toContain("UpdatePrice");
+		expect(choiceNames).toContain("QueryPrice");
+	});
+
+	it("oracle QueryPrice choice is nonconsuming", () => {
+		const template = getPatternTemplate("oracle", "M", "Oracle");
+		const query = template.choices.find((c) => c.name === "QueryPrice");
+		expect(query?.consuming).toBe(false);
+	});
+
+	it("oracle pattern has price field of type Decimal", () => {
+		const template = getPatternTemplate("oracle", "M", "Oracle");
+		const price = template.fields.find((f) => f.name === "price");
+		expect(price?.type).toBe("Decimal");
+	});
+
+	it("oracle pattern includes a key definition", () => {
+		const template = getPatternTemplate("oracle", "M", "Oracle");
+		expect(template.key).toBeDefined();
+		expect(template.key?.maintainer).toBeTruthy();
+	});
+
+	it("token pattern has Transfer, Burn, Mint, and Split choices", () => {
+		const template = getPatternTemplate("token", "M", "Token");
+		const choiceNames = template.choices.map((c) => c.name);
+		expect(choiceNames).toContain("Transfer");
+		expect(choiceNames).toContain("Burn");
+		expect(choiceNames).toContain("Mint");
+		expect(choiceNames).toContain("Split");
+	});
+
+	it("token pattern has amount field of type Decimal", () => {
+		const template = getPatternTemplate("token", "M", "Token");
+		const amount = template.fields.find((f) => f.name === "amount");
+		expect(amount?.type).toBe("Decimal");
+	});
+
+	it("token pattern has decimals field of type Int", () => {
+		const template = getPatternTemplate("token", "M", "Token");
+		const decimals = template.fields.find((f) => f.name === "decimals");
+		expect(decimals?.type).toBe("Int");
+	});
+
+	it("token pattern includes a key definition", () => {
+		const template = getPatternTemplate("token", "M", "Token");
+		expect(template.key).toBeDefined();
+		expect(template.key?.maintainer).toBeTruthy();
+	});
+
+	it("token pattern has an ensure clause", () => {
+		const template = getPatternTemplate("token", "M", "Token");
+		expect(template.ensure).toBeDefined();
 	});
 });
