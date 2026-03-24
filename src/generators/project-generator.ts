@@ -80,37 +80,5 @@ export function generateProject(options: GeneratorOptions): GenerationResult {
 		);
 	}
 
-	// Generate proposal agreement template if pattern is proposal
-	if (options.pattern === "proposal") {
-		const agreementDaml = generateAgreementTemplate(template);
-		files.push(
-			writeFile(
-				options.outputDir,
-				`daml/${template.moduleName}Agreement.daml`,
-				agreementDaml,
-				options.overwrite,
-			),
-		);
-	}
-
 	return { files, template };
-}
-
-function generateAgreementTemplate(proposal: DamlTemplate): string {
-	return `module ${proposal.moduleName}Agreement where
-
--- | Binding agreement created when a proposal is accepted
-template ${proposal.templateName}Agreement
-  with
-    proposer : Party
-    accepter : Party
-    terms : Text
-  where
-    signatory proposer, accepter
-
-    choice Terminate : ()
-      controller proposer, accepter
-        do
-          return ()
-`;
 }

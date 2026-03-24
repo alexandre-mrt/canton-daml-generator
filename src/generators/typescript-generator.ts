@@ -70,12 +70,11 @@ export function generateTypeScriptClient(template: DamlTemplate): string {
 	}
 
 	lines.push("");
-	lines.push("const TEMPLATE_ID = `${PACKAGE_ID}:${MODULE_NAME}:${TEMPLATE_NAME}`;");
-	lines.push("");
-
 	lines.push(`const PACKAGE_ID = "YOUR_PACKAGE_ID"; // Replace after daml build`);
 	lines.push(`const MODULE_NAME = "${template.moduleName}";`);
 	lines.push(`const TEMPLATE_NAME = "${template.templateName}";`);
+	lines.push("");
+	lines.push("const TEMPLATE_ID = `${PACKAGE_ID}:${MODULE_NAME}:${TEMPLATE_NAME}`;");
 	lines.push("");
 
 	lines.push("interface ApiConfig {");

@@ -52,6 +52,29 @@ export function generateDamlModule(template: DamlTemplate): string {
 		lines.push("");
 	}
 
+	// If this is a proposal template, include the Agreement template in the same module
+	const hasAgreementRef = template.choices.some(
+		(c) =>
+			c.returnType.includes("Agreement") ||
+			(c.body && c.body.includes("Agreement")),
+	);
+	if (hasAgreementRef) {
+		lines.push(`-- | Binding agreement created when a proposal is accepted`);
+		lines.push(`template ${template.templateName}Agreement`);
+		lines.push("  with");
+		lines.push("    proposer : Party");
+		lines.push("    accepter : Party");
+		lines.push("    terms : Text");
+		lines.push("  where");
+		lines.push("    signatory proposer, accepter");
+		lines.push("");
+		lines.push("    choice Terminate : ()");
+		lines.push("      controller proposer, accepter");
+		lines.push("        do");
+		lines.push("          return ()");
+		lines.push("");
+	}
+
 	return lines.join("\n");
 }
 
