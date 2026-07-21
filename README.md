@@ -10,7 +10,7 @@ CLI tool to scaffold **Daml smart contracts** for the Canton Network with TypeSc
 
 Building on Canton Network requires writing Daml smart contracts, test scripts, and TypeScript integration code. This generator:
 
-1. **Scaffolds Daml contracts** from 9 battle-tested patterns (asset, IOU, escrow, auction...)
+1. **Scaffolds Daml contracts** from 9 common patterns (asset, IOU, escrow, auction...)
 2. **Generates TypeScript types** matching your Daml templates
 3. **Creates JSON API clients** for each contract with full type safety
 4. **Generates test scripts** (Daml Script) for automated testing
@@ -159,7 +159,7 @@ daml-gen preview -p <pattern> [-n <name>] [-m <module>]
 
 ## Grant Eligibility
 
-This tool is designed as a **developer tool** for the Canton ecosystem and is eligible for the [Canton Foundation Grants Program](https://canton.foundation/grants-program/):
+This tool is built as a **developer tool** for the Canton ecosystem and is intended to fit the Developer Tools scope of the [Canton Foundation Grants Program](https://canton.foundation/grants-program/):
 
 - **Category:** Developer Tools
 - **Focus:** Accelerating Canton app development, reducing onboarding friction
@@ -167,7 +167,7 @@ This tool is designed as a **developer tool** for the Canton ecosystem and is el
 
 ## Contributing
 
-PRs welcome! See the contributing notes for development conventions.
+PRs welcome. Run `bun install`, then `bun run test` and `bun run type-check` before opening a PR. Formatting/linting is handled by Biome (`bun run lint`).
 
 ## License
 
